@@ -1,0 +1,25 @@
+{
+  "name": "@socio247/functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "serve": "pnpm build && firebase emulators:start --only functions",
+    "clean": "rm -rf lib *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@socio247/domain": "workspace:*",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

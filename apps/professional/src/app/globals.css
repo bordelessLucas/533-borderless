@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #14201c;
+  --color-ink-soft: #2a3b34;
+  --color-ink-muted: #6b7c74;
+  --color-paper: #f3f0e8;
+  --color-paper-raised: #fffdf8;
+  --color-paper-line: #ddd6c8;
+  --color-brand: #0f766e;
+  --color-brand-deep: #0b5a54;
+  --color-brand-soft: #d8f0ec;
+  --color-warn: #b45309;
+  --color-ok: #15803d;
+  --bg-atmosphere:
+    radial-gradient(1200px 600px at 12% -10%, rgba(15, 118, 110, 0.16), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(180, 83, 9, 0.08), transparent 50%),
+    linear-gradient(180deg, #efe9dc 0%, var(--color-paper) 40%, #ebe6db 100%);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: var(--color-ink);
+  background: var(--bg-atmosphere);
+  background-attachment: fixed;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-deep);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

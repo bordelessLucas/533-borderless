@@ -1,0 +1,122 @@
+rules_version = '2';
+
+// Sócio247 — isolamento multi-tenant baseado em custom claims.
+// Claims esperados no token: { platformRole?: string, workspaces: { [workspaceId]: role } }
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPlatformAdmin() {
+      return isSignedIn() && request.auth.token.platformRole == 'platform_admin';
+    }
+
+    function isPlatformStaff() {
+      return isSignedIn() &&
+        (request.auth.token.platformRole == 'platform_admin' ||
+         request.auth.token.platformRole == 'platform_support');
+    }
+
+    function workspaces() {
+      return request.auth.token.workspaces;
+    }
+
+    function isMember(workspaceId) {
+      return isSignedIn() && workspaces() != null && (workspaceId in workspaces());
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isMember(workspaceId) && workspaces()[workspaceId] == 'workspace_owner';
+    }
+
+    // ---------- Backoffice: administradores da plataforma ----------
+    match /platformAdmins/{uid} {
+      allow read: if isPlatformStaff();
+      allow write: if isPlatformAdmin();
+    }
+
+    // ---------- Perfil global do usuário ----------
+    match /users/{uid} {
+      allow read: if isPlatformStaff() || (isSignedIn() && request.auth.uid == uid);
+      // claims/roles nunca são editados pelo cliente — só backend/admin.
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['platformRole', 'workspaces', 'uid', 'createdAt']);
+      allow create, delete: if isPlatformAdmin();
+    }
+
+    // ---------- Tenant: workspace do profissional ----------
+    match /workspaces/{workspaceId} {
+      allow read: if isPlatformStaff() || isMember(workspaceId);
+      allow update: if isPlatformAdmin() || isWorkspaceOwner(workspaceId);
+      // criação de workspace passa pelo backend (provisiona claims + subscription).
+      allow create, delete: if isPlatformAdmin();
+
+      // Membros do workspace: gerenciados pelo owner ou backoffice.
+      match /members/{memberId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isPlatformAdmin() || isWorkspaceOwner(workspaceId);
+      }
+
+      // Catálogo de serviços.
+      match /services/{serviceId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+
+      // Base de clientes.
+      match /clients/{clientId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+
+      // Agenda.
+      match /appointments/{appointmentId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+
+      // Disponibilidade e bloqueios.
+      match /availability/{providerId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+      match /timeBlocks/{blockId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+
+      // Notificações e tokens de push do profissional/atendente.
+      match /notifications/{notificationId} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+      match /deviceTokens/{tokenId} {
+        allow read: if isMember(workspaceId);
+        allow write: if isMember(workspaceId);
+      }
+
+      // Resumos diários: gerados pelo backend; membros só leem e marcam checklist.
+      match /dailySummaries/{date} {
+        allow read: if isPlatformStaff() || isMember(workspaceId);
+        allow update: if isMember(workspaceId);
+        allow create, delete: if false;
+      }
+    }
+
+    // ---------- Billing: assinatura Sócio247 ↔ profissional ----------
+    // Escrita exclusiva do backend (Asaas/webhooks). Cliente apenas lê a própria.
+    match /subscriptions/{workspaceId} {
+      allow read: if isPlatformStaff() || isWorkspaceOwner(workspaceId);
+      allow write: if false;
+    }
+
+    // ---------- Webhooks (Asaas): apenas backend ----------
+    match /webhookEvents/{eventId} {
+      allow read, write: if false;
+    }
+  }
+}

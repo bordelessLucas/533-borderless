@@ -1,0 +1,28 @@
+{
+  "name": "socio247",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sócio247™ — plataforma de agendamento, recorrência e faturamento para profissionais e pequenos negócios.",
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:professional": "pnpm --filter @socio247/professional dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.5.0",
+    "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "esbuild", "@firebase/util", "protobufjs"]
+  }
+}

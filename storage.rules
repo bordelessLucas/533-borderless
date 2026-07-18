@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Storage do Sócio247 — logos de workspace e mídias operacionais.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isMember(workspaceId) {
+      return isSignedIn()
+        && request.auth.token.workspaces != null
+        && (workspaceId in request.auth.token.workspaces);
+    }
+    function isImageUnder5mb() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Arquivos ficam namespaced por workspace para isolamento de tenant.
+    match /workspaces/{workspaceId}/{allPaths=**} {
+      allow read: if isMember(workspaceId);
+      allow write: if isMember(workspaceId) && isImageUnder5mb();
+    }
+  }
+}
