@@ -1,3 +1,3 @@
-export * from './config.js';
-export * from './client.js';
-export * from './converter.js';
+export * from './config';
+export * from './client';
+export * from './converter';

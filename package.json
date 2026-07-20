@@ -15,14 +15,12 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "build:functions": "npm run build --prefix functions"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
     "turbo": "^2.5.0",
     "typescript": "^5.6.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "esbuild", "@firebase/util", "protobufjs"]
   }
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { auditSchema, isoDateTimeSchema, moneySchema } from '../shared/primitives.js';
+import { auditSchema, isoDateTimeSchema, moneySchema } from '../shared/primitives';
 
 /**
  * Ciclo de vida do agendamento.
@@ -7,6 +7,7 @@ import { auditSchema, isoDateTimeSchema, moneySchema } from '../shared/primitive
  */
 export const appointmentStatusSchema = z.enum([
   'scheduled',
+  'pending',
   'confirmed',
   'completed',
   'cancelled',

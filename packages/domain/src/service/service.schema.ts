@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { auditSchema, moneySchema } from '../shared/primitives.js';
+import { auditSchema, moneySchema } from '../shared/primitives';
+
+/** Duração fixa (ex.: corte) vs variável (ex.: mechas — exige confirmação do profissional). */
+export const serviceDurationTypeSchema = z.enum(['fixed', 'variable']);
+export type ServiceDurationType = z.infer<typeof serviceDurationTypeSchema>;
 
 /**
  * Serviço oferecido pelo workspace (`workspaces/{id}/services/{serviceId}`).
@@ -11,6 +15,7 @@ export const serviceSchema = z
     workspaceId: z.string().min(1),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),
+    durationType: serviceDurationTypeSchema.default('fixed'),
     durationMinutes: z.number().int().min(5).max(600),
     price: moneySchema,
     /** Intervalo de limpeza/preparo após o serviço, em minutos. */

@@ -4,7 +4,7 @@ import {
   emailSchema,
   isoDateTimeSchema,
   phoneNumberSchema,
-} from '../shared/primitives.js';
+} from '../shared/primitives';
 
 /**
  * Cliente final do profissional (`workspaces/{id}/clients/{clientId}`).

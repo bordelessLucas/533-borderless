@@ -4,7 +4,7 @@ import {
   isoDateTimeSchema,
   localDateSchema,
   localTimeSchema,
-} from '../shared/primitives.js';
+} from '../shared/primitives';
 
 /** 0 = domingo ... 6 = sábado (compatível com Date.getDay). */
 export const weekdaySchema = z.number().int().min(0).max(6);

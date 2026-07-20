@@ -1,21 +1,21 @@
 // Shared
-export * from './shared/primitives.js';
-export * from './shared/roles.js';
-export * from './shared/collections.js';
+export * from './shared/primitives';
+export * from './shared/roles';
+export * from './shared/collections';
 
 // Identity & tenant
-export * from './user/user.schema.js';
-export * from './workspace/workspace.schema.js';
-export * from './workspace/member.schema.js';
+export * from './user/user.schema';
+export * from './workspace/workspace.schema';
+export * from './workspace/member.schema';
 
 // Operation (App do profissional)
-export * from './service/service.schema.js';
-export * from './client/client.schema.js';
-export * from './appointment/appointment.schema.js';
-export * from './availability/availability.schema.js';
+export * from './service/service.schema';
+export * from './client/client.schema';
+export * from './appointment/appointment.schema';
+export * from './availability/availability.schema';
 
 // Billing (Sócio247 ↔ profissional)
-export * from './billing/subscription.schema.js';
+export * from './billing/subscription.schema';
 
 // Automation (profissional ↔ cliente final + push interno)
-export * from './notification/notification.schema.js';
+export * from './notification/notification.schema';

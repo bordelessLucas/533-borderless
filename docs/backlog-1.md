@@ -7,10 +7,10 @@ Filtro de MVP: *ajuda a conseguir mais clientes?* ou *ajuda o cliente a voltar?*
 
 ## 1. Infra e ambiente
 
-- [ ] Criar projeto Firebase (`socio247-dev` / prod) e preencher `.env`
+- [x] Conectar projeto Firebase (`denilsson-e11e7`) e `.env.local` no app profissional
 - [ ] Completar `pnpm install` estável na raiz (linking + builds `sharp`)
 - [ ] Emuladores Firebase (Auth, Firestore, Functions) no fluxo de desenvolvimento
-- [ ] Deploy inicial de rules + indexes + functions (sandbox)
+- [ ] Deploy inicial de **firestore:rules** + **storage** (sem functions — ver `docs/firebase-setup.md`)
 - [ ] Secrets Asaas (`ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`) no Firebase
 
 ## 2. Migração do app da Lovable (Supabase → Firebase)
@@ -23,7 +23,10 @@ Filtro de MVP: *ajuda a conseguir mais clientes?* ou *ajuda o cliente a voltar?*
 
 ## 3. App web do profissional (além do mock)
 
-- [ ] Auth real (login / sessão / logout)
+- [x] Auth real (login / cadastro / logout) — Firebase Auth
+- [x] Provisionamento de workspace no cadastro (client-side Firestore — sem Blaze/Functions)
+- [ ] Cloud Functions (Blaze): claims, Asaas, resumo 08:00 automático
+- [x] Configurações lendo workspace do Firestore (com fallback mock)
 - [ ] CRUD de serviços, clientes, horários de disponibilidade
 - [ ] Criar/editar/cancelar agendamentos com cálculo de slots
 - [ ] Bloqueio de horários (folgas, almoço, imprevistos) persistido

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { auditSchema, isoDateTimeSchema, localDateSchema } from '../shared/primitives.js';
+import { auditSchema, isoDateTimeSchema, localDateSchema } from '../shared/primitives';
 
 /** Token de push do dispositivo do profissional/atendente (FCM). */
 export const deviceTokenSchema = z

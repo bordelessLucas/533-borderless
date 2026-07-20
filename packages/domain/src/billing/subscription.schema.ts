@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { auditSchema, isoDateTimeSchema, moneySchema } from '../shared/primitives.js';
+import { auditSchema, isoDateTimeSchema, moneySchema } from '../shared/primitives';
 
 /**
  * Planos da Sócio247. Preço-alvo do MVP ~R$50/mês (vs. concorrentes ~R$200).

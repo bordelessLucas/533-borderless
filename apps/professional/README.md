@@ -1,33 +1,25 @@
 # App do profissional (web)
 
-Next.js + TypeScript + Tailwind — UI com **dados mockados** alinhada à proposta Sócio247.
+Next.js + TypeScript + Tailwind + **Firebase** (Auth + Firestore).
 
 ## Rodar
-
-Na raiz do monorepo:
 
 ```bash
 pnpm install
 pnpm --filter @socio247/professional dev
 ```
 
-Abre em [http://localhost:3000](http://localhost:3000) (ou a porta livre que o Next indicar).
+Abre [http://localhost:3000/login](http://localhost:3000/login).
 
-Se o `pnpm --filter` falhar no install de scripts, rode direto:
-
-```bash
-cd apps/professional
-./node_modules/.bin/next dev --port 3000
-```
+**Antes do primeiro cadastro:** siga `docs/firebase-setup.md` (Auth e-mail/senha, Firestore, deploy das **rules** — sem Functions no plano Spark).
 
 ## Telas
 
 | Rota | Conteúdo |
 | --- | --- |
-| `/dashboard` | Resumo 08:00 (checklist WhatsApp) + agenda do dia |
-| `/agenda` | Atendimentos + bloqueios de horário |
+| `/login` | Entrar ou criar conta (provisiona workspace) |
+| `/dashboard` | Resumo 08:00 + agenda do dia (mock até ligar Firestore na agenda) |
+| `/agenda` | Atendimentos + bloqueios |
 | `/clientes` | Base com recorrência |
-| `/servicos` | Catálogo com duração/preço |
-| `/configuracoes` | Endereço, modo assistido, link de agendamento, assinatura |
-
-Pagamento do cliente final: **no local**. Billing da plataforma: mock R$ 49,90/mês.
+| `/servicos` | Catálogo |
+| `/configuracoes` | Endereço, modo assistido, link — **lê Firestore quando logado** |

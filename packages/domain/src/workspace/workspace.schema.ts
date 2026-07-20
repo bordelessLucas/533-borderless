@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { addressSchema, auditSchema, emailSchema, phoneNumberSchema } from '../shared/primitives.js';
+import { addressSchema, auditSchema, emailSchema, phoneNumberSchema } from '../shared/primitives';
 
 /** Segmento do negócio — usado para métricas e defaults de UX. */
 export const businessSegmentSchema = z.enum([

@@ -1,11 +1,9 @@
 rules_version = '2';
 
-// Sócio247 — isolamento multi-tenant baseado em custom claims.
-// Claims esperados no token: { platformRole?: string, workspaces: { [workspaceId]: role } }
+// Sócio247 — list queries exigem rules SEM get()/exists() (allow list separado de allow get).
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------- Helpers ----------
     function isSignedIn() {
       return request.auth != null;
     }
@@ -20,101 +18,252 @@ service cloud.firestore {
          request.auth.token.platformRole == 'platform_support');
     }
 
-    function workspaces() {
-      return request.auth.token.workspaces;
-    }
-
-    function isMember(workspaceId) {
-      return isSignedIn() && workspaces() != null && (workspaceId in workspaces());
+    function workspaceData(workspaceId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)).data;
     }
 
     function isWorkspaceOwner(workspaceId) {
-      return isMember(workspaceId) && workspaces()[workspaceId] == 'workspace_owner';
+      return isSignedIn() && workspaceData(workspaceId).ownerId == request.auth.uid;
     }
 
-    // ---------- Backoffice: administradores da plataforma ----------
+    function isMemberDoc(workspaceId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function canAccessWorkspace(workspaceId) {
+      return isPlatformStaff() || isWorkspaceOwner(workspaceId) || isMemberDoc(workspaceId);
+    }
+
+    function isLegacyTenantOwnerGet(workspaceId) {
+      return isSignedIn()
+        && !('ownerId' in resource.data)
+        && workspaceData(workspaceId).ownerId == request.auth.uid;
+    }
+
+    function isLegacyTenantOwnerUpdate(workspaceId) {
+      return isSignedIn()
+        && !('ownerId' in resource.data)
+        && workspaceData(workspaceId).ownerId == request.auth.uid;
+    }
+
+    function isTenantOwnerDoc() {
+      return isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isWorkspaceStaffFromToken(workspaceId) {
+      return isSignedIn()
+        && 'workspaces' in request.auth.token
+        && request.auth.token.workspaces.get(workspaceId, '') in ['workspace_owner', 'workspace_staff'];
+    }
+
+    function isWorkspaceOwnerByPath(workspaceId) {
+      return isSignedIn() && workspaceData(workspaceId).ownerId == request.auth.uid;
+    }
+
+    function isTenantOwnerCreate() {
+      return isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.workspaceStatus == 'active';
+    }
+
+    function isPublicTenantList() {
+      return resource.data.workspaceStatus == 'active';
+    }
+
+    function isPublicBookingAppointmentCreate(workspaceId) {
+      return request.resource.data.workspaceId == workspaceId
+        && request.resource.data.source == 'booking_link'
+        && request.resource.data.status in ['confirmed', 'pending']
+        && request.resource.data.ownerId == workspaceData(workspaceId).ownerId
+        && request.resource.data.workspaceStatus == 'active';
+    }
+
+    function isPublicBookingClientCreate(workspaceId) {
+      return request.resource.data.workspaceId == workspaceId
+        && request.resource.data.consentToContact == true
+        && request.resource.data.active == true
+        && request.resource.data.ownerId == workspaceData(workspaceId).ownerId
+        && request.resource.data.workspaceStatus == 'active';
+    }
+
     match /platformAdmins/{uid} {
       allow read: if isPlatformStaff();
       allow write: if isPlatformAdmin();
     }
 
-    // ---------- Perfil global do usuário ----------
     match /users/{uid} {
       allow read: if isPlatformStaff() || (isSignedIn() && request.auth.uid == uid);
-      // claims/roles nunca são editados pelo cliente — só backend/admin.
+      allow create: if isSignedIn() && request.auth.uid == uid
+        && !('platformRole' in request.resource.data);
       allow update: if isSignedIn() && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['platformRole', 'workspaces', 'uid', 'createdAt']);
-      allow create, delete: if isPlatformAdmin();
+              .hasAny(['platformRole', 'uid', 'createdAt']);
+      allow delete: if isPlatformAdmin();
     }
 
-    // ---------- Tenant: workspace do profissional ----------
     match /workspaces/{workspaceId} {
-      allow read: if isPlatformStaff() || isMember(workspaceId);
+      allow get: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
+        || canAccessWorkspace(workspaceId)
+        || resource.data.status == 'active';
+      allow list: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
+        || resource.data.status == 'active';
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.id == workspaceId;
       allow update: if isPlatformAdmin() || isWorkspaceOwner(workspaceId);
-      // criação de workspace passa pelo backend (provisiona claims + subscription).
-      allow create, delete: if isPlatformAdmin();
+      allow delete: if isPlatformAdmin();
 
-      // Membros do workspace: gerenciados pelo owner ou backoffice.
       match /members/{memberId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isPlatformAdmin() || isWorkspaceOwner(workspaceId);
+        allow get: if canAccessWorkspace(workspaceId)
+          || (isSignedIn() && memberId == request.auth.uid);
+        allow list: if canAccessWorkspace(workspaceId);
+        allow create: if isSignedIn()
+          && memberId == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.workspaceId == workspaceId
+          && workspaceData(workspaceId).ownerId == request.auth.uid;
+        allow update, delete: if isPlatformAdmin() || isWorkspaceOwner(workspaceId);
       }
 
-      // Catálogo de serviços.
       match /services/{serviceId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow get: if isPublicTenantList() && resource.data.active == true;
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isPublicTenantList() && resource.data.active == true;
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
 
-      // Base de clientes.
       match /clients/{clientId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow create: if (isTenantOwnerCreate()
+            && request.resource.data.workspaceId == workspaceId)
+          || isPublicBookingClientCreate(workspaceId);
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
 
-      // Agenda.
       match /appointments/{appointmentId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow get: if isPublicTenantList();
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isPublicTenantList();
+        allow create: if (isTenantOwnerCreate()
+            && request.resource.data.workspaceId == workspaceId)
+          || isPublicBookingAppointmentCreate(workspaceId);
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
 
-      // Disponibilidade e bloqueios.
       match /availability/{providerId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow get: if isPublicTenantList();
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isPublicTenantList();
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
+
       match /timeBlocks/{blockId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow get: if isPublicTenantList();
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isPublicTenantList();
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
 
-      // Notificações e tokens de push do profissional/atendente.
       match /notifications/{notificationId} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow write: if isMember(workspaceId);
-      }
-      match /deviceTokens/{tokenId} {
-        allow read: if isMember(workspaceId);
-        allow write: if isMember(workspaceId);
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
 
-      // Resumos diários: gerados pelo backend; membros só leem e marcam checklist.
+      match /deviceTokens/{tokenId} {
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+      }
+
       match /dailySummaries/{date} {
-        allow read: if isPlatformStaff() || isMember(workspaceId);
-        allow update: if isMember(workspaceId);
-        allow create, delete: if false;
+        allow get: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceStaffFromToken(workspaceId);
+        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
+        allow create: if isTenantOwnerCreate()
+          && request.resource.data.workspaceId == workspaceId;
+        allow update: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerUpdate(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
+        allow delete: if isTenantOwnerDoc()
+          || isLegacyTenantOwnerGet(workspaceId)
+          || isWorkspaceOwnerByPath(workspaceId);
       }
     }
 
-    // ---------- Billing: assinatura Sócio247 ↔ profissional ----------
-    // Escrita exclusiva do backend (Asaas/webhooks). Cliente apenas lê a própria.
     match /subscriptions/{workspaceId} {
       allow read: if isPlatformStaff() || isWorkspaceOwner(workspaceId);
-      allow write: if false;
+      allow create: if isWorkspaceOwner(workspaceId)
+        && request.resource.data.workspaceId == workspaceId;
+      allow update, delete: if false;
     }
 
-    // ---------- Webhooks (Asaas): apenas backend ----------
     match /webhookEvents/{eventId} {
       allow read, write: if false;
     }

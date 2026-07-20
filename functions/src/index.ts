@@ -5,3 +5,4 @@ setGlobalOptions({ region: 'southamerica-east1', maxInstances: 10 });
 
 export { asaasWebhook } from './billing/asaasWebhook.js';
 export { generateDailySummaries } from './automation/dailySummary.js';
+export { provisionWorkspace } from './auth/provisionWorkspace.js';

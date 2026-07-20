@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
-import { Figtree, Syne } from 'next/font/google';
+import { Fraunces, Inter } from 'next/font/google';
+import { Providers } from '@/providers/Providers';
 import './globals.css';
 
-const display = Syne({
+const display = Fraunces({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['600', '700', '800'],
+  weight: ['500', '600', '700'],
 });
 
-const sans = Figtree({
+const sans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   weight: ['400', '500', '600', '700'],
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${display.variable} ${sans.variable} font-sans antialiased`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

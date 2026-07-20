@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { auditSchema, emailSchema, phoneNumberSchema } from '../shared/primitives.js';
-import { platformRoleSchema, workspaceRoleSchema } from '../shared/roles.js';
+import { auditSchema, emailSchema, phoneNumberSchema } from '../shared/primitives';
+import { platformRoleSchema, workspaceRoleSchema } from '../shared/roles';
 
 /**
  * Perfil global do usuário (`users/{uid}`). Espelha claims para leitura em app,

@@ -1,7 +1,7 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import type { FirebaseConfig } from './config.js';
+import type { FirebaseConfig } from './config';
 
 export interface FirebaseClient {
   app: FirebaseApp;

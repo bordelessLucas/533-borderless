@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { auditSchema } from '../shared/primitives.js';
-import { workspaceRoleSchema } from '../shared/roles.js';
+import { auditSchema } from '../shared/primitives';
+import { workspaceRoleSchema } from '../shared/roles';
 
 /**
  * Membro de um workspace (`workspaces/{id}/members/{uid}`).
