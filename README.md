@@ -23,7 +23,7 @@ sem software complexo e a um custo acessível (alvo ~R$50/mês).
 - **Assistida:** resumo diário às **08:00** com mensagens prontas para copiar/colar +
   checklist de confirmação. Push avisa que o resumo está pronto.
 
-## Estrutura (monorepo pnpm + Turborepo)
+## Estrutura (monorepo npm + Turborepo)
 
 ```
 apps/
@@ -63,10 +63,11 @@ Autorização por **custom claims**: `{ platformRole?, workspaces: { [id]: role 
 ## Desenvolvimento
 
 ```bash
-corepack enable pnpm      # habilita o pnpm
-pnpm install              # instala dependências do monorepo
-pnpm typecheck            # checa tipos de todos os pacotes
-pnpm dev                  # sobe os apps em modo dev
+npm install               # instala dependências do monorepo
+npm run typecheck         # checa tipos de todos os pacotes
+npm run dev               # sobe os apps em modo dev
+npm run dev:professional  # só o web do profissional
+npm run dev:mobile        # só o app Expo
 ```
 
 Emuladores do Firebase:

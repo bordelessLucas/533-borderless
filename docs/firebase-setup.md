@@ -22,7 +22,7 @@ npx firebase-tools deploy --only firestore:rules,storage --project denilsson-e11
 ## 4. Rodar o web
 
 ```bash
-pnpm --filter @socio247/professional dev
+npm run dev:professional
 ```
 
 Abra `/login` → **Criar conta**.

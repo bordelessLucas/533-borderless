@@ -5,8 +5,8 @@ Next.js + TypeScript + Tailwind + **Firebase** (Auth + Firestore).
 ## Rodar
 
 ```bash
-pnpm install
-pnpm --filter @socio247/professional dev
+npm install
+npm run dev:professional
 ```
 
 Abre [http://localhost:3000/login](http://localhost:3000/login).
