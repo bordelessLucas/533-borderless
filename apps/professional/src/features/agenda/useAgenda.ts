@@ -12,9 +12,15 @@ import {
   listAppointmentsInRange,
   type ManualAppointmentInput,
 } from './appointments.repository';
-import { getDayRange, getWeekRange } from './datetime';
+import { getDayRange, getMonthRange, getWeekRange } from './datetime';
 
-export type AgendaView = 'day' | 'week';
+export type AgendaView = 'calendar' | 'day' | 'week';
+
+function rangeForView(view: AgendaView, referenceDate: Date) {
+  if (view === 'day') return getDayRange(referenceDate);
+  if (view === 'week') return getWeekRange(referenceDate);
+  return getMonthRange(referenceDate);
+}
 
 export function useAgenda(view: AgendaView, referenceDate: Date) {
   const { db } = getFirebaseClient();
@@ -25,10 +31,7 @@ export function useAgenda(view: AgendaView, referenceDate: Date) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const range = useMemo(
-    () => (view === 'day' ? getDayRange(referenceDate) : getWeekRange(referenceDate)),
-    [view, referenceDate],
-  );
+  const range = useMemo(() => rangeForView(view, referenceDate), [view, referenceDate]);
 
   const reload = useCallback(async () => {
     if (!workspaceId || !user) {

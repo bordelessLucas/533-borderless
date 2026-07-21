@@ -1,5 +1,6 @@
-import { ConfiguracoesContent } from './ConfiguracoesContent';
+import { redirect } from 'next/navigation';
 
-export default function ConfiguracoesPage() {
-  return <ConfiguracoesContent />;
+/** Configurações antigas → Meu link (print atual). */
+export default function ConfiguracoesRedirectPage() {
+  redirect('/meu-link');
 }

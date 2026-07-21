@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { tenantFirestoreFields } from '../tenantFirestore.js';
 import { auth, db } from '../admin.js';
 
 const inputSchema = z.object({
@@ -25,7 +26,7 @@ function todayLocalDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function buildTodayAppointments(startAtBase: Date) {
+function buildTodayAppointments(startAtBase: Date, providerId: string) {
   const slots = [
     { time: '09:00', clientId: 'cli_lucas', clientName: 'Lucas Almeida', phone: '+5511944441122', serviceId: 'svc_corte', serviceName: 'Corte masculino', minutes: 40, cents: 5500 },
     { time: '10:30', clientId: 'cli_rafa', clientName: 'Rafael Souza', phone: '+5511977774455', serviceId: 'svc_combo', serviceName: 'Corte + barba', minutes: 60, cents: 8500 },
@@ -43,7 +44,7 @@ function buildTodayAppointments(startAtBase: Date) {
       clientId: slot.clientId,
       clientName: slot.clientName,
       clientPhone: slot.phone,
-      providerId: 'owner',
+      providerId,
       services: [{
         serviceId: slot.serviceId,
         name: slot.serviceName,
@@ -152,10 +153,11 @@ export const provisionWorkspace = onCall({ region: 'southamerica-east1' }, async
     { id: 'svc_combo', name: 'Corte + barba', durationMinutes: 60, price: 8500, color: '#1D4ED8' },
   ];
 
+  const tenantFields = tenantFirestoreFields(uid, workspaceId);
+
   for (const svc of services) {
     batch.set(wsRef.collection('services').doc(svc.id), {
       id: svc.id,
-      workspaceId,
       name: svc.name,
       durationMinutes: svc.durationMinutes,
       price: { amountInCents: svc.price, currency: 'BRL' },
@@ -164,6 +166,7 @@ export const provisionWorkspace = onCall({ region: 'southamerica-east1' }, async
       active: true,
       createdAt: iso,
       updatedAt: iso,
+      ...tenantFields,
     });
   }
 
@@ -178,30 +181,32 @@ export const provisionWorkspace = onCall({ region: 'southamerica-east1' }, async
   for (const client of clients) {
     batch.set(wsRef.collection('clients').doc(client.id), {
       id: client.id,
-      workspaceId,
       name: client.name,
       phoneNumber: client.phone,
-      recurrenceIntervalDays: client.recurrence,
+      ...(client.recurrence !== undefined
+        ? { recurrenceIntervalDays: client.recurrence }
+        : {}),
       consentToContact: true,
       tags: client.recurrence ? ['recorrente'] : [],
       active: true,
       createdAt: iso,
       updatedAt: iso,
+      ...tenantFields,
     });
   }
 
   const today = new Date();
-  const appointments = buildTodayAppointments(today);
+  const appointments = buildTodayAppointments(today, uid);
   for (const apt of appointments) {
     const { timeLabel: _t, clientPhone: _p, ...doc } = apt;
     batch.set(wsRef.collection('appointments').doc(apt.id), {
       ...doc,
-      workspaceId,
       clientId: apt.clientId,
       providerId: uid,
       notes: undefined,
       createdAt: iso,
       updatedAt: iso,
+      ...tenantFields,
     });
   }
 
@@ -256,12 +261,12 @@ export const provisionWorkspace = onCall({ region: 'southamerica-east1' }, async
 
   batch.set(wsRef.collection('dailySummaries').doc(todayLocalDate()), {
     date: todayLocalDate(),
-    workspaceId,
     generatedAt: iso,
     appointmentsCount: appointments.length,
     items: checklistItems,
     createdAt: iso,
     updatedAt: iso,
+    ...tenantFields,
   });
 
   batch.set(db.collection('users').doc(uid), {

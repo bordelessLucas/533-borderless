@@ -22,6 +22,36 @@ export function getDayRange(referenceDate: Date): { start: Date; end: Date } {
   return { start, end };
 }
 
+/** Intervalo do mês civil + padding da grade (seg→dom), para o calendário. */
+export function getMonthRange(referenceDate: Date): { start: Date; end: Date } {
+  const firstOfMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+  firstOfMonth.setHours(0, 0, 0, 0);
+
+  const start = new Date(firstOfMonth);
+  const weekday = start.getDay();
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+  start.setDate(start.getDate() + mondayOffset);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 42);
+
+  return { start, end };
+}
+
+export function isSameLocalDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function startOfLocalDay(date: Date): Date {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
 export function toLocalDateInputValue(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -82,4 +112,9 @@ export function formatWeekRangeLabel(start: Date, end: Date): string {
   });
 
   return `${startLabel} – ${endLabel}`;
+}
+
+export function formatMonthLabel(date: Date): string {
+  const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }

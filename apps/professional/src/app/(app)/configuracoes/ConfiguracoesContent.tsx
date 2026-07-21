@@ -1,6 +1,22 @@
 'use client';
 
 import { AppShell } from '@/components/AppShell';
+import {
+  AppPage,
+  AppPageContent,
+  AppPageDescription,
+  AppPageHeader,
+  AppPageTitle,
+} from '@/components/app-page';
+import {
+  AppSection,
+  AppSectionContent,
+  AppSectionDescription,
+  AppSectionHeader,
+  AppSectionTitle,
+} from '@/components/app-section';
+import { Badge } from '@/components/ui/badge';
+import { Surface } from '@/components/ui/surface';
 import { useWorkspace } from '@/providers/WorkspaceProvider';
 import { bookingLink as mockBookingLink, workspace as mockWorkspace } from '@/data/mock';
 
@@ -26,82 +42,98 @@ export function ConfiguracoesContent() {
 
   return (
     <AppShell activeHref="/configuracoes">
-      <div className="space-y-10">
-        <section>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight">Configurações</h1>
-          <p className="mt-2 max-w-xl text-ink-muted">
-            Endereço na confirmação, modo de comunicação e link público de agendamento.
-            {data ? (
-              <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-ok">
-                Firebase
-              </span>
-            ) : (
-              <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-warn">
-                Mock
-              </span>
-            )}
-          </p>
-        </section>
+      <AppPage>
+        <AppPageHeader>
+          <div>
+            <AppPageTitle>Configurações</AppPageTitle>
+            <AppPageDescription>
+              Endereço na confirmação, modo de comunicação e link público de agendamento.
+            </AppPageDescription>
+          </div>
+          <Badge variant={data ? 'success' : 'warning'}>{data ? 'Firebase' : 'Mock'}</Badge>
+        </AppPageHeader>
 
-        <section className="space-y-3">
-          <h2 className="font-display text-2xl font-bold">Local de atendimento</h2>
-          <p className="text-sm text-ink-muted">
-            Entra na mensagem de confirmação com dia e horário.
-          </p>
-          <div className="border-y border-paper-line py-4">
-            <p className="font-semibold">{name}</p>
-            {address ? (
-              <>
-                <p className="mt-1 text-ink-soft">
-                  {address.street}, {address.number} — {address.neighborhood}
+        <AppPageContent>
+          <AppSection>
+            <AppSectionHeader>
+              <div>
+                <AppSectionTitle>Local de atendimento</AppSectionTitle>
+                <AppSectionDescription>
+                  Entra na mensagem de confirmação com dia e horário.
+                </AppSectionDescription>
+              </div>
+            </AppSectionHeader>
+            <AppSectionContent>
+              <Surface>
+                <p className="font-semibold">{name}</p>
+                {address ? (
+                  <>
+                    <p className="mt-1 text-ink-soft">
+                      {address.street}, {address.number} — {address.neighborhood}
+                    </p>
+                    <p className="text-ink-soft">
+                      {address.city}/{address.state} · CEP {address.postalCode}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm text-warn">Endereço não cadastrado — adicione em breve.</p>
+                )}
+                {phone ? <p className="mt-2 text-sm text-ink-muted">{phone}</p> : null}
+              </Surface>
+            </AppSectionContent>
+          </AppSection>
+
+          <AppSection>
+            <AppSectionHeader>
+              <AppSectionTitle>Comunicação</AppSectionTitle>
+            </AppSectionHeader>
+            <AppSectionContent>
+              <Surface>
+                <p className="font-semibold">
+                  Modo {communicationMode === 'assisted' ? 'assistido' : 'automático'} · resumo às{' '}
+                  {dailySummaryTime}
                 </p>
-                <p className="text-ink-soft">
-                  {address.city}/{address.state} · CEP {address.postalCode}
+                <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+                  A Sócio247 monta o checklist diário com mensagens prontas. Você copia, cola no
+                  WhatsApp pessoal e confirma o que foi avisado.
                 </p>
-              </>
-            ) : (
-              <p className="mt-1 text-sm text-warn">Endereço não cadastrado — adicione em breve.</p>
-            )}
-            {phone ? <p className="mt-2 text-sm text-ink-muted">{phone}</p> : null}
-          </div>
-        </section>
+              </Surface>
+            </AppSectionContent>
+          </AppSection>
 
-        <section className="space-y-3">
-          <h2 className="font-display text-2xl font-bold">Comunicação</h2>
-          <div className="border-y border-paper-line py-4">
-            <p className="font-semibold">
-              Modo {communicationMode === 'assisted' ? 'assistido' : 'automático'} · resumo às{' '}
-              {dailySummaryTime}
-            </p>
-            <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-              A Sócio247 monta o checklist diário com mensagens prontas. Você copia, cola no
-              WhatsApp pessoal e confirma o que foi avisado.
-            </p>
-          </div>
-        </section>
+          <AppSection>
+            <AppSectionHeader>
+              <AppSectionTitle>Link de agendamento</AppSectionTitle>
+            </AppSectionHeader>
+            <AppSectionContent>
+              <Surface>
+                <p className="break-all font-medium text-brand">{bookingLink || mockBookingLink}</p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  O cliente final usa o link — sem precisar baixar app nesta fase.
+                </p>
+              </Surface>
+            </AppSectionContent>
+          </AppSection>
 
-        <section className="space-y-3">
-          <h2 className="font-display text-2xl font-bold">Link de agendamento</h2>
-          <div className="border-y border-paper-line py-4">
-            <p className="break-all font-medium text-brand">{bookingLink || mockBookingLink}</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              O cliente final usa o link — sem precisar baixar app nesta fase.
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="font-display text-2xl font-bold">Assinatura</h2>
-          <div className="border-y border-paper-line py-4">
-            <p className="font-semibold">Plano Starter · R$ 49,90/mês</p>
-            <p className="mt-1 text-sm text-ink-muted">
-              Cobrança Sócio247 ↔ profissional (Asaas). Pagamento do cliente final permanece no
-              local.
-            </p>
-            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-ok">Ativa</p>
-          </div>
-        </section>
-      </div>
+          <AppSection>
+            <AppSectionHeader>
+              <AppSectionTitle>Assinatura</AppSectionTitle>
+            </AppSectionHeader>
+            <AppSectionContent>
+              <Surface>
+                <p className="font-semibold">Plano Starter · R$ 49,90/mês</p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Cobrança Sócio247 ↔ profissional (Asaas). Pagamento do cliente final permanece no
+                  local.
+                </p>
+                <Badge variant="success" className="mt-3">
+                  Ativa
+                </Badge>
+              </Surface>
+            </AppSectionContent>
+          </AppSection>
+        </AppPageContent>
+      </AppPage>
     </AppShell>
   );
 }

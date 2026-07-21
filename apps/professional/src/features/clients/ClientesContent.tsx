@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { FolderOpen, Plus } from 'lucide-react';
 import type { Client } from '@socio247/domain';
 import { AppShell } from '@/components/AppShell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { EmptyState, MetricCard } from '@/components/ui/patterns';
 import { useWorkspace } from '@/providers/WorkspaceProvider';
 import { ClientForm } from './ClientForm';
 import { ClientList } from './ClientList';
@@ -15,6 +19,12 @@ export function ClientesContent() {
     useClients();
   const [mode, setMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editing, setEditing] = useState<Client | null>(null);
+
+  const summary = useMemo(() => {
+    const total = clients.length;
+    const active = clients.filter((c) => c.active).length;
+    return { total, active, inactive: total - active };
+  }, [clients]);
 
   function openCreate() {
     setEditing(null);
@@ -56,7 +66,7 @@ export function ClientesContent() {
   if (isLoading || isWorkspaceLoading) {
     return (
       <AppShell activeHref="/clientes">
-        <p className="text-ink-muted">Carregando clientes…</p>
+        <p className="text-sm text-[var(--text-muted)]">Carregando clientes…</p>
       </AppShell>
     );
   }
@@ -64,36 +74,30 @@ export function ClientesContent() {
   if (!workspaceId) {
     return (
       <AppShell activeHref="/clientes">
-        <p className="text-warn">
-          {workspaceError ?? 'Workspace não encontrado para este usuário.'}
-        </p>
+        <Alert variant="warning" description={workspaceError ?? 'Workspace não encontrado.'} />
       </AppShell>
     );
   }
 
   return (
     <AppShell activeHref="/clientes">
-      <div className="space-y-8">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-display text-4xl font-extrabold tracking-tight">Clientes</h1>
-            <p className="mt-2 max-w-xl text-ink-muted">
-              Recorrência clara para você saber quem está perto de voltar — e avisar antes de
-              esquecer.
-            </p>
-          </div>
+      <div className="space-y-5">
+        <div className="flex items-center justify-end">
           {mode === 'list' ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="rounded-md bg-ink px-4 py-2 text-sm font-semibold text-paper-raised transition hover:bg-ink-soft"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={openCreate}>
+              <Plus className="size-3.5" aria-hidden />
               Novo cliente
-            </button>
+            </Button>
           ) : null}
-        </section>
+        </div>
 
-        {error ? <p className="text-sm text-warn">{error}</p> : null}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricCard value={summary.total} label="Total" />
+          <MetricCard value={summary.active} label="Ativos" />
+          <MetricCard value={summary.inactive} label="Inativos" />
+        </div>
+
+        {error ? <Alert variant="warning" description={error} /> : null}
 
         {mode !== 'list' ? (
           <ClientForm
@@ -104,13 +108,27 @@ export function ClientesContent() {
           />
         ) : null}
 
-        <ClientList
-          clients={clients}
-          isSaving={isSaving}
-          onEdit={openEdit}
-          onDeactivate={handleDeactivate}
-          onReactivate={handleReactivate}
-        />
+        {clients.length === 0 && mode === 'list' ? (
+          <EmptyState
+            icon={FolderOpen}
+            title="Nenhum cliente cadastrado"
+            description="Adicione seu primeiro cliente para acompanhar recorrência e retornos."
+            action={
+              <Button type="button" size="sm" onClick={openCreate}>
+                <Plus className="size-3.5" aria-hidden />
+                Novo cliente
+              </Button>
+            }
+          />
+        ) : mode === 'list' ? (
+          <ClientList
+            clients={clients}
+            isSaving={isSaving}
+            onEdit={openEdit}
+            onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+          />
+        ) : null}
       </div>
     </AppShell>
   );

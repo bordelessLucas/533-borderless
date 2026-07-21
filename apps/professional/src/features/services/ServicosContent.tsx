@@ -1,28 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Plus, Scissors } from 'lucide-react';
 import type { Service } from '@socio247/domain';
 import { AppShell } from '@/components/AppShell';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/patterns';
 import { useWorkspace } from '@/providers/WorkspaceProvider';
+import { cn } from '@/lib/utils';
 import { ServiceForm } from './ServiceForm';
 import { ServiceList } from './ServiceList';
 import type { ServiceFormInput } from './services.repository';
 import { useServices } from './useServices';
 
+type Filter = 'all' | 'active' | 'inactive';
+
 export function ServicosContent() {
   const { error: workspaceError, isLoading: isWorkspaceLoading } = useWorkspace();
-  const {
-    services,
-    isLoading,
-    isSaving,
-    error,
-    workspaceId,
-    create,
-    update,
-    setActive,
-  } = useServices();
+  const { services, isLoading, isSaving, error, workspaceId, create, update, setActive } =
+    useServices();
   const [mode, setMode] = useState<'list' | 'create' | 'edit'>('list');
   const [editing, setEditing] = useState<Service | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+
+  const counts = useMemo(() => {
+    const active = services.filter((s) => s.active).length;
+    return { all: services.length, active, inactive: services.length - active };
+  }, [services]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'active') return services.filter((s) => s.active);
+    if (filter === 'inactive') return services.filter((s) => !s.active);
+    return services;
+  }, [filter, services]);
 
   function openCreate() {
     setEditing(null);
@@ -64,7 +75,7 @@ export function ServicosContent() {
   if (isLoading || isWorkspaceLoading) {
     return (
       <AppShell activeHref="/servicos">
-        <p className="text-ink-muted">Carregando serviços…</p>
+        <p className="text-sm text-[var(--text-muted)]">Carregando serviços…</p>
       </AppShell>
     );
   }
@@ -72,35 +83,47 @@ export function ServicosContent() {
   if (!workspaceId) {
     return (
       <AppShell activeHref="/servicos">
-        <p className="text-warn">
-          {workspaceError ?? 'Workspace não encontrado para este usuário.'}
-        </p>
+        <Alert variant="warning" description={workspaceError ?? 'Workspace não encontrado.'} />
       </AppShell>
     );
   }
 
   return (
     <AppShell activeHref="/servicos">
-      <div className="space-y-8">
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-display text-4xl font-extrabold tracking-tight">Serviços</h1>
-            <p className="mt-2 max-w-xl text-ink-muted">
-              Duração e preço certos alimentam a agenda e o faturamento previsto do dia.
-            </p>
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+            {(
+              [
+                ['all', 'Todos', counts.all],
+                ['active', 'Ativos', counts.active],
+                ['inactive', 'Inativos', counts.inactive],
+              ] as const
+            ).map(([key, label, count]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilter(key)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium',
+                  filter === key
+                    ? 'bg-white text-[var(--text-primary)] shadow-sm'
+                    : 'text-[var(--text-muted)]',
+                )}
+              >
+                {label} {count}
+              </button>
+            ))}
           </div>
           {mode === 'list' ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="rounded-md bg-ink px-4 py-2 text-sm font-semibold text-paper-raised transition hover:bg-ink-soft"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={openCreate}>
+              <Plus className="size-3.5" aria-hidden />
               Novo serviço
-            </button>
+            </Button>
           ) : null}
-        </section>
+        </div>
 
-        {error ? <p className="text-sm text-warn">{error}</p> : null}
+        {error ? <Alert variant="warning" description={error} /> : null}
 
         {mode !== 'list' ? (
           <ServiceForm
@@ -111,13 +134,27 @@ export function ServicosContent() {
           />
         ) : null}
 
-        <ServiceList
-          services={services}
-          isSaving={isSaving}
-          onEdit={openEdit}
-          onDeactivate={handleDeactivate}
-          onReactivate={handleReactivate}
-        />
+        {filtered.length === 0 && mode === 'list' ? (
+          <EmptyState
+            icon={Scissors}
+            title="Nenhum serviço cadastrado"
+            description="Adicione seu primeiro serviço para começar a receber agendamentos"
+            action={
+              <Button type="button" size="sm" onClick={openCreate}>
+                <Plus className="size-3.5" aria-hidden />
+                Novo serviço
+              </Button>
+            }
+          />
+        ) : mode === 'list' ? (
+          <ServiceList
+            services={filtered}
+            isSaving={isSaving}
+            onEdit={openEdit}
+            onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+          />
+        ) : null}
       </div>
     </AppShell>
   );

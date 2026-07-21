@@ -1,6 +1,7 @@
 rules_version = '2';
 
 // Sócio247 — list queries exigem rules SEM get()/exists() (allow list separado de allow get).
+// get em documento inexistente: resource == null — precisa ser permitido para o provisionamento.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -37,18 +38,20 @@ service cloud.firestore {
 
     function isLegacyTenantOwnerGet(workspaceId) {
       return isSignedIn()
+        && resource != null
         && !('ownerId' in resource.data)
         && workspaceData(workspaceId).ownerId == request.auth.uid;
     }
 
     function isLegacyTenantOwnerUpdate(workspaceId) {
       return isSignedIn()
+        && resource != null
         && !('ownerId' in resource.data)
         && workspaceData(workspaceId).ownerId == request.auth.uid;
     }
 
     function isTenantOwnerDoc() {
-      return isSignedIn() && resource.data.ownerId == request.auth.uid;
+      return isSignedIn() && resource != null && resource.data.ownerId == request.auth.uid;
     }
 
     function isWorkspaceStaffFromToken(workspaceId) {
@@ -68,7 +71,16 @@ service cloud.firestore {
     }
 
     function isPublicTenantList() {
-      return resource.data.workspaceStatus == 'active';
+      return resource != null && resource.data.workspaceStatus == 'active';
+    }
+
+    // getDoc em doc inexistente (resource == null) — necessário no onboarding / re-seed
+    function canProbeMissingTenantDoc(workspaceId) {
+      return isSignedIn() && resource == null && isWorkspaceOwnerByPath(workspaceId);
+    }
+
+    function canProbeMissingWorkspace() {
+      return isSignedIn() && resource == null;
     }
 
     function isPublicBookingAppointmentCreate(workspaceId) {
@@ -93,7 +105,10 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isPlatformStaff() || (isSignedIn() && request.auth.uid == uid);
+      allow get: if isPlatformStaff()
+        || (isSignedIn() && request.auth.uid == uid);
+      allow list: if isPlatformStaff()
+        || (isSignedIn() && request.auth.uid == uid);
       allow create: if isSignedIn() && request.auth.uid == uid
         && !('platformRole' in request.resource.data);
       allow update: if isSignedIn() && request.auth.uid == uid
@@ -103,7 +118,8 @@ service cloud.firestore {
     }
 
     match /workspaces/{workspaceId} {
-      allow get: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
+      allow get: if canProbeMissingWorkspace()
+        || (isSignedIn() && resource.data.ownerId == request.auth.uid)
         || canAccessWorkspace(workspaceId)
         || resource.data.status == 'active';
       allow list: if (isSignedIn() && resource.data.ownerId == request.auth.uid)
@@ -115,7 +131,8 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
 
       match /members/{memberId} {
-        allow get: if canAccessWorkspace(workspaceId)
+        allow get: if (isSignedIn() && resource == null && memberId == request.auth.uid)
+          || canAccessWorkspace(workspaceId)
           || (isSignedIn() && memberId == request.auth.uid);
         allow list: if canAccessWorkspace(workspaceId);
         allow create: if isSignedIn()
@@ -127,12 +144,14 @@ service cloud.firestore {
       }
 
       match /services/{serviceId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
-          || isWorkspaceStaffFromToken(workspaceId);
-        allow get: if isPublicTenantList() && resource.data.active == true;
-        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
-        allow list: if isPublicTenantList() && resource.data.active == true;
+          || isWorkspaceStaffFromToken(workspaceId)
+          || (isPublicTenantList() && resource.data.active == true);
+        allow list: if isTenantOwnerDoc()
+          || isWorkspaceStaffFromToken(workspaceId)
+          || (isPublicTenantList() && resource.data.active == true);
         allow create: if isTenantOwnerCreate()
           && request.resource.data.workspaceId == workspaceId;
         allow update: if isTenantOwnerDoc()
@@ -144,7 +163,8 @@ service cloud.firestore {
       }
 
       match /clients/{clientId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
           || isWorkspaceStaffFromToken(workspaceId);
         allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
@@ -160,12 +180,14 @@ service cloud.firestore {
       }
 
       match /appointments/{appointmentId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
-          || isWorkspaceStaffFromToken(workspaceId);
-        allow get: if isPublicTenantList();
-        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
-        allow list: if isPublicTenantList();
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
+        allow list: if isTenantOwnerDoc()
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
         allow create: if (isTenantOwnerCreate()
             && request.resource.data.workspaceId == workspaceId)
           || isPublicBookingAppointmentCreate(workspaceId);
@@ -178,12 +200,14 @@ service cloud.firestore {
       }
 
       match /availability/{providerId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
-          || isWorkspaceStaffFromToken(workspaceId);
-        allow get: if isPublicTenantList();
-        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
-        allow list: if isPublicTenantList();
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
+        allow list: if isTenantOwnerDoc()
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
         allow create: if isTenantOwnerCreate()
           && request.resource.data.workspaceId == workspaceId;
         allow update: if isTenantOwnerDoc()
@@ -195,12 +219,14 @@ service cloud.firestore {
       }
 
       match /timeBlocks/{blockId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
-          || isWorkspaceStaffFromToken(workspaceId);
-        allow get: if isPublicTenantList();
-        allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
-        allow list: if isPublicTenantList();
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
+        allow list: if isTenantOwnerDoc()
+          || isWorkspaceStaffFromToken(workspaceId)
+          || isPublicTenantList();
         allow create: if isTenantOwnerCreate()
           && request.resource.data.workspaceId == workspaceId;
         allow update: if isTenantOwnerDoc()
@@ -212,7 +238,8 @@ service cloud.firestore {
       }
 
       match /notifications/{notificationId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
           || isWorkspaceStaffFromToken(workspaceId);
         allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
@@ -227,7 +254,8 @@ service cloud.firestore {
       }
 
       match /deviceTokens/{tokenId} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
           || isWorkspaceStaffFromToken(workspaceId);
         allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
@@ -242,7 +270,8 @@ service cloud.firestore {
       }
 
       match /dailySummaries/{date} {
-        allow get: if isTenantOwnerDoc()
+        allow get: if canProbeMissingTenantDoc(workspaceId)
+          || isTenantOwnerDoc()
           || isLegacyTenantOwnerGet(workspaceId)
           || isWorkspaceStaffFromToken(workspaceId);
         allow list: if isTenantOwnerDoc() || isWorkspaceStaffFromToken(workspaceId);
@@ -258,7 +287,10 @@ service cloud.firestore {
     }
 
     match /subscriptions/{workspaceId} {
-      allow read: if isPlatformStaff() || isWorkspaceOwner(workspaceId);
+      allow get: if (isSignedIn() && resource == null)
+        || isPlatformStaff()
+        || isWorkspaceOwner(workspaceId);
+      allow list: if isPlatformStaff() || isWorkspaceOwner(workspaceId);
       allow create: if isWorkspaceOwner(workspaceId)
         && request.resource.data.workspaceId == workspaceId;
       allow update, delete: if false;

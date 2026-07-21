@@ -2,22 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Sócio247™ — tokens alinhados ao UI dos prints (slate + azul soft).
+ */
+
 :root {
-  --color-ink: #14201c;
-  --color-ink-soft: #2a3b34;
-  --color-ink-muted: #6b7c74;
-  --color-paper: #f3f0e8;
-  --color-paper-raised: #fffdf8;
-  --color-paper-line: #ddd6c8;
-  --color-brand: #0f766e;
-  --color-brand-deep: #0b5a54;
-  --color-brand-soft: #d8f0ec;
+  /* Legacy aliases (compat) */
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-ink-muted: #64748b;
+  --color-paper: #f8fafc;
+  --color-paper-raised: #ffffff;
+  --color-paper-line: #e2e8f0;
+  --color-brand: #3b82f6;
+  --color-brand-deep: #1d4ed8;
+  --color-brand-soft: #dbeafe;
   --color-warn: #b45309;
   --color-ok: #15803d;
-  --bg-atmosphere:
-    radial-gradient(1200px 600px at 12% -10%, rgba(15, 118, 110, 0.16), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(180, 83, 9, 0.08), transparent 50%),
-    linear-gradient(180deg, #efe9dc 0%, var(--color-paper) 40%, #ebe6db 100%);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --spacing-2xs: var(--space-1);
+  --spacing-xs: var(--space-2);
+  --spacing-sm: var(--space-3);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
+  --spacing-2xl: var(--space-12);
+
+  --radius-px-4: 0.25rem;
+  --radius-px-6: 0.375rem;
+  --radius-px-8: 0.5rem;
+  --radius-px-12: 0.75rem;
+  --radius-role-subtle: var(--radius-px-6);
+  --radius-role-default: var(--radius-px-8);
+  --radius-role-soft: var(--radius-px-12);
+  --radius-button: var(--radius-role-default);
+  --radius-input: var(--radius-role-default);
+  --radius-card: var(--radius-role-soft);
+  --radius-navigation: var(--radius-role-subtle);
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f8fafc;
+  --surface-elevated: #ffffff;
+  --surface-floating: #ffffff;
+  --surface-sunken: #f1f5f9;
+  --sidebar-bg: #f8fafc;
+  --sidebar-active-bg: #e0e7ff;
+  --sidebar-active-fg: #1e3a8a;
+  --sidebar-active-bar: #3730a3;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+  --text-on-brand: #ffffff;
+
+  --border-subtle: #e2e8f0;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --divider: #e2e8f0;
+
+  --primary-default: #0f172a;
+  --primary-hover: #1e293b;
+  --primary-active: #020617;
+  --primary-subtle: #e0e7ff;
+  --on-primary: #ffffff;
+
+  --secondary-default: #ffffff;
+  --secondary-hover: #f8fafc;
+  --secondary-active: #f1f5f9;
+  --on-secondary: #0f172a;
+
+  --accent-default: #3b82f6;
+  --accent-subtle: #dbeafe;
+
+  --success: #15803d;
+  --success-hover: #166534;
+  --success-subtle: #dcfce7;
+  --on-success: #ffffff;
+
+  --warning: #b45309;
+  --warning-hover: #92400e;
+  --warning-subtle: #ffedd5;
+  --on-warning: #ffffff;
+
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-subtle: #fee2e2;
+  --on-danger: #ffffff;
+
+  --link: #1d4ed8;
+  --link-hover: #1e40af;
+
+  --state-hover-overlay: rgba(15, 23, 42, 0.04);
+  --state-pressed-overlay: rgba(15, 23, 42, 0.08);
+  --state-selected-bg: var(--sidebar-active-bg);
+  --state-disabled: 0.45;
+  --state-loading: 0.7;
+  --state-hover: var(--state-hover-overlay);
+  --state-pressed: var(--state-pressed-overlay);
+
+  --header-bg: #ffffff;
+  --header-fg: #0f172a;
+  --footer-bg: transparent;
+  --footer-fg: #64748b;
+
+  --selection-bg: #dbeafe;
+  --selection-fg: #1e3a8a;
+  --focus-ring: #3b82f6;
+  --focus-ring-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus-ring);
+
+  --shadow-button: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-card: none;
+  --shadow-sidebar: none;
+  --shadow-header: none;
+
+  --motion-duration-feedback: 150ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-button: background-color 150ms var(--motion-ease-standard),
+    color 150ms var(--motion-ease-standard), opacity 150ms var(--motion-ease-standard);
+
+  --icon-size-button: 1rem;
+  --icon-size-navigation: 1.125rem;
+
+  --z-header: 40;
+  --z-sidebar: 30;
+  --z-overlay: 50;
+  --z-modal: 60;
+
+  --container-dashboard: 72rem;
 }
 
 html,
@@ -26,9 +148,8 @@ body {
 }
 
 body {
-  color: var(--color-ink);
-  background: var(--bg-atmosphere);
-  background-attachment: fixed;
+  color: var(--text-primary);
+  background: var(--background);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -38,12 +159,12 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 ::selection {
-  background: var(--color-brand-soft);
-  color: var(--color-brand-deep);
+  background: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 @layer utilities {

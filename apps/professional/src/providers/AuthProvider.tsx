@@ -17,8 +17,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { getFirebaseClient } from '@/lib/firebase';
-import { ensureUserWorkspaceLink } from '@/lib/workspaceAccess';
-import { provisionWorkspaceClient } from '@/lib/provisionWorkspace';
+import { ensureWorkspaceForUser } from '@/lib/workspaceAccess';
 
 interface AuthContextValue {
   user: User | null;
@@ -52,19 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      await ensureWorkspaceForUser(db, credential.user);
+      await credential.user.getIdToken(true);
     },
-    [auth],
+    [auth, db],
   );
 
   const signUp = useCallback(
     async ({ email, password, businessName, ownerName }: SignUpInput) => {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const { workspaceId } = await provisionWorkspaceClient(db, credential.user, {
-        businessName,
-        ownerName,
-      });
-      await ensureUserWorkspaceLink(db, credential.user.uid, workspaceId, credential.user);
+      await ensureWorkspaceForUser(db, credential.user, { businessName, ownerName });
+      await credential.user.getIdToken(true);
     },
     [auth, db],
   );

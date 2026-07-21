@@ -2,6 +2,7 @@
 export * from './shared/primitives';
 export * from './shared/roles';
 export * from './shared/collections';
+export * from './shared/tenantFirestore';
 
 // Identity & tenant
 export * from './user/user.schema';

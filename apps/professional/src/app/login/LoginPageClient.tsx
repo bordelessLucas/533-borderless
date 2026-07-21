@@ -3,14 +3,64 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Stack } from '@/components/ui/stack';
+import { Text } from '@/components/ui/text';
+import {
+  AuthCard,
+  AuthFooter,
+  AuthHeader,
+  AuthPage,
+  OrDivider,
+  PasswordField,
+} from '@/features/auth/components';
 
 type Mode = 'login' | 'signup';
+
+function formatAuthError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return 'Não foi possível entrar. Tente novamente.';
+  }
+
+  const code =
+    err && typeof err === 'object' && 'code' in err ? String((err as { code: string }).code) : '';
+  const message = err.message;
+
+  if (
+    code === 'permission-denied' ||
+    message.includes('insufficient permissions') ||
+    message.includes('Sem permissão para criar o workspace')
+  ) {
+    return 'Falha ao criar seus dados no Firestore (permissão). Confirme o deploy das Security Rules e tente de novo.';
+  }
+
+  if (code === 'auth/email-already-in-use') {
+    return 'Este e-mail já está cadastrado. Use Entrar ou outro e-mail.';
+  }
+
+  if (
+    code === 'auth/invalid-credential' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/user-not-found'
+  ) {
+    return 'E-mail ou senha inválidos.';
+  }
+
+  if (code === 'auth/weak-password') {
+    return 'A senha precisa ter pelo menos 6 caracteres.';
+  }
+
+  return message || 'Não foi possível entrar. Tente novamente.';
+}
 
 export default function LoginPageClient() {
   const { signIn, signUp, user, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = searchParams.get('next') ?? '/agenda';
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -21,14 +71,14 @@ export default function LoginPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!isLoading && user && !isSubmitting) {
       router.replace(next);
     }
-  }, [isLoading, user, next, router]);
+  }, [isLoading, user, isSubmitting, next, router]);
 
-  if (!isLoading && user) {
+  if (!isLoading && user && !isSubmitting) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-ink-muted">
+      <div className="flex min-h-screen items-center justify-center text-[var(--text-muted)]">
         Redirecionando…
       </div>
     );
@@ -46,117 +96,121 @@ export default function LoginPageClient() {
         await signUp({ email, password, businessName, ownerName });
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Não foi possível entrar. Tente novamente.';
-      setError(message);
+      setError(formatAuthError(err));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
-      <div className="mb-8 text-center">
-        <p className="font-display text-4xl font-extrabold tracking-tight text-ink">
-          Sócio<span className="text-brand">247</span>
-        </p>
-        <p className="mt-2 text-sm text-ink-muted">
-          Agenda cheia, recorrência e lembretes — sem complicação.
-        </p>
-      </div>
-
-      <div className="mb-6 flex rounded-lg border border-paper-line bg-paper-raised p-1">
-        <button
-          type="button"
-          onClick={() => setMode('login')}
-          className={`flex-1 rounded-md py-2 text-sm font-semibold ${
-            mode === 'login' ? 'bg-ink text-paper-raised' : 'text-ink-soft'
-          }`}
-        >
-          Entrar
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('signup')}
-          className={`flex-1 rounded-md py-2 text-sm font-semibold ${
-            mode === 'signup' ? 'bg-ink text-paper-raised' : 'text-ink-soft'
-          }`}
-        >
-          Criar conta
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4 border-y border-paper-line py-6">
-        {mode === 'signup' ? (
-          <>
-            <Field label="Seu nome" value={ownerName} onChange={setOwnerName} required />
-            <Field
-              label="Nome do negócio"
-              value={businessName}
-              onChange={setBusinessName}
-              required
-              placeholder="Ex.: Barbado Norte"
-            />
-          </>
-        ) : null}
-
-        <Field label="E-mail" type="email" value={email} onChange={setEmail} required />
-        <Field
-          label="Senha"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          required
-          minLength={6}
-        />
-
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-brand py-3 text-sm font-semibold text-paper-raised transition hover:bg-brand-deep disabled:opacity-60"
-        >
-          {isSubmitting ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta e começar'}
-        </button>
-      </form>
-
-      <p className="mt-6 text-center text-xs text-ink-muted">
-        No cadastro, criamos seu workspace com dados de exemplo para você explorar.
-      </p>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = 'text',
-  required,
-  minLength,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  required?: boolean;
-  minLength?: number;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm font-semibold text-ink-soft">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        minLength={minLength}
-        placeholder={placeholder}
-        className="mt-1 w-full rounded-md border border-paper-line bg-paper-raised px-3 py-2 text-sm outline-none ring-brand focus:ring-2"
+    <AuthPage>
+      <AuthHeader
+        title={mode === 'login' ? 'Entrar' : 'Criar conta'}
+        description={
+          mode === 'login'
+            ? 'Acesse seu painel do Sócio247.'
+            : 'Provisionamos seu workspace com dados de exemplo.'
+        }
       />
-    </label>
+
+      <AuthCard>
+        <div className="flex rounded-input border border-[var(--border-subtle)] bg-surface p-1">
+          <button
+            type="button"
+            onClick={() => setMode('login')}
+            className={`flex-1 rounded-nav py-2 text-sm font-semibold transition ${
+              mode === 'login'
+                ? 'bg-[var(--text-primary)] text-[var(--text-inverse)]'
+                : 'text-[var(--text-secondary)]'
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('signup')}
+            className={`flex-1 rounded-nav py-2 text-sm font-semibold transition ${
+              mode === 'signup'
+                ? 'bg-[var(--text-primary)] text-[var(--text-inverse)]'
+                : 'text-[var(--text-secondary)]'
+            }`}
+          >
+            Criar conta
+          </button>
+        </div>
+
+        <OrDivider>continue com e-mail</OrDivider>
+
+        <Stack as="form" gap="md" onSubmit={handleSubmit} aria-label="Formulário de autenticação">
+          {mode === 'signup' ? (
+            <>
+              <Stack gap="xs">
+                <Label htmlFor="owner-name">Seu nome</Label>
+                <Input
+                  id="owner-name"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                />
+              </Stack>
+              <Stack gap="xs">
+                <Label htmlFor="business-name">Nome do negócio</Label>
+                <Input
+                  id="business-name"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                  placeholder="Ex.: Barbado Norte"
+                  disabled={isSubmitting}
+                />
+              </Stack>
+            </>
+          ) : null}
+
+          <Stack gap="xs">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isSubmitting}
+            />
+          </Stack>
+
+          <Stack gap="xs">
+            <Label htmlFor="password">Senha</Label>
+            <PasswordField
+              id="password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              disabled={isSubmitting}
+            />
+          </Stack>
+
+          {error ? <Alert variant="danger" description={error} /> : null}
+
+          <Button type="submit" loading={isSubmitting} className="w-full">
+            {isSubmitting
+              ? 'Aguarde…'
+              : mode === 'login'
+                ? 'Entrar'
+                : 'Criar conta e começar'}
+          </Button>
+        </Stack>
+      </AuthCard>
+
+      <Text role="caption" intent="muted" className="max-w-md text-center">
+        No cadastro, criamos seu workspace com dados de exemplo para você explorar.
+      </Text>
+
+      <AuthFooter />
+    </AuthPage>
   );
 }
