@@ -53,10 +53,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const snap = await getDoc(doc(db, 'workspaces', id));
         if (!snap.exists()) {
           setWorkspace(null);
+          setError('Negócio não encontrado. Tente sair e entrar novamente.');
           return;
         }
 
         const parsed = parseFirestoreDoc(workspaceSchema, snap.data());
+        if (!parsed) {
+          setWorkspace(null);
+          setError(
+            'Não foi possível validar os dados do negócio. Você ainda pode editar o link; se o erro continuar, revise o cadastro.',
+          );
+          return;
+        }
+
         setWorkspace(parsed);
       } catch (readErr) {
         setWorkspace(null);
