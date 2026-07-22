@@ -71,12 +71,13 @@ export default function LoginPageClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user && !isSubmitting) {
+    // Só redireciona sessão já autenticada — nunca no meio/fim de um submit com erro.
+    if (!isLoading && user && !isSubmitting && !error) {
       router.replace(next);
     }
-  }, [isLoading, user, isSubmitting, next, router]);
+  }, [isLoading, user, isSubmitting, error, next, router]);
 
-  if (!isLoading && user && !isSubmitting) {
+  if (!isLoading && user && !isSubmitting && !error) {
     return (
       <div className="flex min-h-screen items-center justify-center text-[var(--text-muted)]">
         Redirecionando…
@@ -95,6 +96,7 @@ export default function LoginPageClient() {
       } else {
         await signUp({ email, password, businessName, ownerName });
       }
+      router.replace(next);
     } catch (err) {
       setError(formatAuthError(err));
     } finally {

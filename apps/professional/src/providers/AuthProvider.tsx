@@ -14,6 +14,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  updateProfile,
   type User,
 } from 'firebase/auth';
 import { getFirebaseClient } from '@/lib/firebase';
@@ -61,8 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async ({ email, password, businessName, ownerName }: SignUpInput) => {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      await ensureWorkspaceForUser(db, credential.user, { businessName, ownerName });
-      await credential.user.getIdToken(true);
+      try {
+        await updateProfile(credential.user, { displayName: ownerName });
+        await ensureWorkspaceForUser(db, credential.user, { businessName, ownerName });
+        await credential.user.getIdToken(true);
+      } catch (err) {
+        // Evita ficar autenticado sem workspace (Login redirecionaria para /agenda).
+        await firebaseSignOut(auth);
+        throw err;
+      }
     },
     [auth, db],
   );

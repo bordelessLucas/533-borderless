@@ -12,7 +12,9 @@ import {
 import { statusLabel } from './status';
 
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'] as const;
+const WEEKDAYS_SHORT = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] as const;
 const PREVIEW_LIMIT = 2;
+const MOBILE_DOT_LIMIT = 3;
 
 function appointmentsForDay(appointments: Appointment[], day: Date): Appointment[] {
   return appointments
@@ -51,14 +53,15 @@ export function AgendaCalendar({
   }, [month]);
 
   return (
-    <div className="rounded-card border border-[var(--border-subtle)] bg-white">
-      <div className="grid grid-cols-7 rounded-t-[inherit] border-b border-[var(--border-subtle)] bg-slate-50">
-        {WEEKDAYS.map((label) => (
+    <div className="overflow-hidden rounded-card border border-[var(--border-subtle)] bg-white">
+      <div className="grid grid-cols-7 border-b border-[var(--border-subtle)] bg-slate-50">
+        {WEEKDAYS.map((label, index) => (
           <div
             key={label}
-            className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+            className="px-0.5 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] sm:px-2 sm:text-[11px]"
           >
-            {label}
+            <span className="sm:hidden">{WEEKDAYS_SHORT[index]}</span>
+            <span className="hidden sm:inline">{label}</span>
           </div>
         ))}
       </div>
@@ -75,22 +78,35 @@ export function AgendaCalendar({
           const col = index % 7;
           const tooltipAlign =
             col >= 5 ? 'right-0' : col === 0 ? 'left-0' : 'left-1/2 -translate-x-1/2';
+          const dotCount = Math.min(dayAppointments.length, MOBILE_DOT_LIMIT);
 
           return (
             <button
               key={day.toISOString()}
               type="button"
               onClick={() => onSelectDay(startOfLocalDay(day))}
+              aria-label={`${day.toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}${
+                dayAppointments.length > 0
+                  ? `, ${dayAppointments.length} agendamento${dayAppointments.length === 1 ? '' : 's'}`
+                  : ''
+              }`}
+              aria-pressed={isSelected}
               className={cn(
-                'relative flex min-h-[7.5rem] flex-col gap-1 border-b border-r border-[var(--border-subtle)] p-1.5 text-left transition-colors',
+                'relative flex flex-col gap-0.5 border-b border-r border-[var(--border-subtle)] text-left transition-colors',
+                'min-h-[2.75rem] items-center px-0.5 py-1.5 sm:min-h-[7.5rem] sm:items-stretch sm:gap-1 sm:p-1.5',
                 'hover:bg-slate-50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
                 !inCurrentMonth && 'bg-slate-50/60 text-[var(--text-muted)]',
-                isSelected && 'bg-[var(--sidebar-active-bg)]/40',
+                isSelected &&
+                  'z-[1] bg-[var(--sidebar-active-bg)]/50 ring-1 ring-inset ring-[var(--sidebar-active-bar)]',
               )}
             >
               <span
                 className={cn(
-                  'inline-flex size-6 items-center justify-center rounded-full text-xs font-semibold',
+                  'inline-flex size-7 items-center justify-center rounded-full text-xs font-semibold sm:size-6',
                   isToday && 'bg-[var(--primary-default)] text-white',
                   !isToday && isSelected && 'text-[var(--sidebar-active-fg)]',
                 )}
@@ -98,7 +114,29 @@ export function AgendaCalendar({
                 {day.getDate()}
               </span>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-0.5">
+              {/* Mobile: só indicadores (dots) */}
+              {dayAppointments.length > 0 ? (
+                <div className="flex items-center justify-center gap-0.5 sm:hidden" aria-hidden>
+                  {Array.from({ length: dotCount }, (_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-1 rounded-full',
+                        isToday ? 'bg-white/90' : 'bg-[var(--primary-default)]',
+                        !inCurrentMonth && !isToday && 'bg-slate-400',
+                      )}
+                    />
+                  ))}
+                  {dayAppointments.length > MOBILE_DOT_LIMIT ? (
+                    <span className="text-[9px] font-bold leading-none text-[var(--link)]">+</span>
+                  ) : null}
+                </div>
+              ) : (
+                <span className="size-1 sm:hidden" aria-hidden />
+              )}
+
+              {/* Desktop: preview com tooltip */}
+              <div className="hidden min-h-0 flex-1 flex-col gap-0.5 sm:flex">
                 {preview.map((appointment) => {
                   const serviceNames = appointment.services.map((s) => s.name).join(', ');
                   return (

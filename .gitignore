@@ -4,7 +4,9 @@ node_modules/
 
 # Build outputs
 dist/
-lib/
+# compiled JS from tsc (não confundir com apps/*/src/lib)
+packages/*/lib/
+functions/lib/
 .next/
 out/
 build/

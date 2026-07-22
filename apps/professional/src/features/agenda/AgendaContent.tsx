@@ -97,6 +97,14 @@ export function AgendaContent() {
     if (view === 'day') {
       setReferenceDate(next);
     }
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches) {
+      window.requestAnimationFrame(() => {
+        document.getElementById('agenda-day-panel')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    }
   }
 
   if (isLoading || isWorkspaceLoading) {
@@ -117,14 +125,19 @@ export function AgendaContent() {
 
   return (
     <AppShell activeHref="/agenda">
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="size-4 text-[var(--text-muted)]" strokeWidth={1.75} />
+      <div className="space-y-4 sm:space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <CalendarDays className="size-4 shrink-0 text-[var(--text-muted)]" strokeWidth={1.75} />
             <h1 className="text-base font-semibold text-[var(--text-primary)]">Agenda</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="secondary" size="sm" className="shadow-none">
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="hidden shadow-none sm:inline-flex"
+            >
               <Users className="size-3.5" aria-hidden />
               Todos os profissionais
             </Button>
@@ -132,18 +145,18 @@ export function AgendaContent() {
               <Plus className="size-3.5" aria-hidden />
               Novo
             </Button>
-            <Button type="button" variant="secondary" size="sm" disabled>
+            <Button type="button" variant="secondary" size="sm" className="hidden sm:inline-flex" disabled>
               <Lock className="size-3.5" aria-hidden />
               Bloquear
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex w-full items-center gap-1 overflow-x-auto rounded-lg bg-slate-50 p-1 sm:w-auto sm:overflow-visible sm:bg-transparent sm:p-0 sm:gap-2">
             {(
               [
-                { id: 'calendar', label: 'Calendário' },
+                { id: 'calendar', label: 'Mês' },
                 { id: 'day', label: 'Dia' },
                 { id: 'week', label: 'Semana' },
               ] as const
@@ -158,9 +171,9 @@ export function AgendaContent() {
                   }
                 }}
                 className={cn(
-                  'rounded-md px-3 py-1.5 text-xs font-medium',
+                  'flex-1 rounded-md px-3 py-2 text-xs font-medium sm:flex-none sm:py-1.5',
                   view === option.id
-                    ? 'bg-slate-100 text-[var(--text-primary)]'
+                    ? 'bg-white text-[var(--text-primary)] shadow-sm sm:bg-slate-100 sm:shadow-none'
                     : 'text-[var(--text-muted)] hover:bg-slate-50',
                 )}
               >
@@ -169,22 +182,22 @@ export function AgendaContent() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
             <button
               type="button"
               onClick={() => shiftPeriod(-1)}
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-slate-50"
+              className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-slate-50 sm:size-8"
               aria-label="Período anterior"
             >
               <ChevronLeft className="size-4" />
             </button>
-            <span className="min-w-[10rem] text-center text-xs font-medium capitalize text-[var(--text-secondary)]">
+            <span className="min-w-0 flex-1 truncate text-center text-xs font-medium capitalize text-[var(--text-secondary)] sm:min-w-[10rem] sm:flex-none">
               {periodLabel}
             </span>
             <button
               type="button"
               onClick={() => shiftPeriod(1)}
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-slate-50"
+              className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-slate-50 sm:size-8"
               aria-label="Próximo período"
             >
               <ChevronRight className="size-4" />
@@ -193,7 +206,7 @@ export function AgendaContent() {
               type="button"
               variant="secondary"
               size="sm"
-              className="shadow-none"
+              className="shrink-0 shadow-none"
               onClick={() => {
                 const today = startOfLocalDay(new Date());
                 setSelectedDay(today);
@@ -209,7 +222,7 @@ export function AgendaContent() {
         {optionsError ? <Alert variant="warning" description={optionsError} /> : null}
 
         {view === 'calendar' ? (
-          <div className="space-y-5">
+          <div className="space-y-3 sm:space-y-4">
             <AgendaCalendar
               month={referenceDate}
               selectedDay={selectedDay}
@@ -217,32 +230,42 @@ export function AgendaContent() {
               onSelectDay={handleSelectDay}
             />
 
-            <section className="space-y-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold capitalize text-[var(--text-primary)]">
-                  {selectedDayLabel}
-                </h2>
-                <span className="text-xs text-[var(--text-muted)]">
-                  {dayAppointments.length === 0
-                    ? 'Sem agendamentos'
-                    : `${dayAppointments.length} agendamento${dayAppointments.length === 1 ? '' : 's'}`}
+            <section
+              id="agenda-day-panel"
+              className="scroll-mt-16 space-y-2 rounded-lg border border-[var(--border-subtle)] bg-white p-3 sm:space-y-3 sm:p-4"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    Dia selecionado
+                  </p>
+                  <h2 className="truncate text-[13px] font-semibold capitalize text-[var(--text-primary)]">
+                    {selectedDayLabel}
+                  </h2>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-secondary)]">
+                  {dayAppointments.length}
                 </span>
               </div>
 
               {dayAppointments.length === 0 ? (
                 <EmptyState
                   icon={CalendarDays}
-                  title="Nenhum agendamento neste dia"
-                  description="Clique em outro dia no calendário ou crie um novo agendamento."
+                  title="Sem horários neste dia"
+                  description="Escolha outro dia ou crie um agendamento."
                   action={
                     <Button type="button" size="sm" onClick={() => setIsModalOpen(true)}>
                       <Plus className="size-3.5" aria-hidden />
-                      Novo agendamento
+                      Novo
                     </Button>
                   }
                 />
               ) : (
-                <AppointmentList appointments={dayAppointments} referenceDate={selectedDay} />
+                <AppointmentList
+                  appointments={dayAppointments}
+                  referenceDate={selectedDay}
+                  compactDay
+                />
               )}
             </section>
           </div>
