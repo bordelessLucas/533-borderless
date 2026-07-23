@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import { ClientRedirect } from '@/components/ClientRedirect';
 
 /** Configurações antigas → Meu link (print atual). */
 export default function ConfiguracoesRedirectPage() {
-  redirect('/meu-link');
+  return <ClientRedirect href="/meu-link" />;
 }

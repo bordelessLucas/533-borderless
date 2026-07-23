@@ -6,6 +6,27 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "hosting": {
+    "public": "apps/professional/out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "/b/**",
+        "destination": "/b/_/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public,max-age=31536000,immutable"
+          }
+        ]
+      }
+    ]
+  },
   "emulators": {
     "auth": { "port": 9099 },
     "firestore": { "port": 8080 },

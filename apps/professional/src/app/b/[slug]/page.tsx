@@ -1,10 +1,10 @@
 import { BookingPageClient } from './BookingPageClient';
 
-interface BookingPageProps {
-  params: Promise<{ slug: string }>;
+/** Placeholder para static export; slug real vem da URL via rewrite do Hosting. */
+export function generateStaticParams() {
+  return [{ slug: '_' }];
 }
 
-export default async function BookingPage({ params }: BookingPageProps) {
-  const { slug } = await params;
-  return <BookingPageClient slug={slug} />;
+export default function BookingPage() {
+  return <BookingPageClient />;
 }

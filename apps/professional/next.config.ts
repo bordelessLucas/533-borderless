@@ -6,6 +6,9 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = path.join(appDir, '../..');
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  images: { unoptimized: true },
+  trailingSlash: true,
   transpilePackages: ['@socio247/domain', '@socio247/firebase'],
   // Evita o Next escolher /home/eduardo/package-lock.json como root
   outputFileTracingRoot: monorepoRoot,

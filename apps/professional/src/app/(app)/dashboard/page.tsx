@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import { ClientRedirect } from '@/components/ClientRedirect';
 
 /** Compat: /dashboard passa a ser Operação. */
 export default function DashboardRedirectPage() {
-  redirect('/operacao');
+  return <ClientRedirect href="/operacao" />;
 }

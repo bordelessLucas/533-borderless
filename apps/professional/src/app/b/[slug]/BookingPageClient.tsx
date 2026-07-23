@@ -1,12 +1,24 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
+import { useParams, usePathname } from 'next/navigation';
 import { CalendarDays, Check, Clock3, MapPin, ShieldCheck } from 'lucide-react';
 import type { Workspace } from '@socio247/domain';
 import { cn } from '@/lib/utils';
 import { formatBRL } from '@/features/services/money';
 import { formatSlotLabel } from '@/features/booking/slots';
 import { usePublicBooking } from '@/features/booking/usePublicBooking';
+
+function resolveBookingSlug(
+  paramsSlug: string | string[] | undefined,
+  pathname: string | null,
+): string {
+  if (typeof paramsSlug === 'string' && paramsSlug && paramsSlug !== '_') {
+    return paramsSlug;
+  }
+  const fromPath = pathname?.match(/^\/b\/([^/]+)/)?.[1];
+  return fromPath && fromPath !== '_' ? fromPath : '';
+}
 
 function formatAddress(workspace: Workspace): string | null {
   const address = workspace.address;
@@ -31,11 +43,11 @@ function formatDateLabel(isoDate: string): string {
   }).format(new Date(year, month - 1, day));
 }
 
-interface BookingPageClientProps {
-  slug: string;
-}
+export function BookingPageClient() {
+  const params = useParams<{ slug?: string }>();
+  const pathname = usePathname();
+  const slug = resolveBookingSlug(params.slug, pathname);
 
-export function BookingPageClient({ slug }: BookingPageClientProps) {
   const {
     workspace,
     services,
